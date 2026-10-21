@@ -1,0 +1,13 @@
+[command]
+name = "analyze"
+description = "Executa análise pós-implementação sobre arquivos gerados. Verifica violações de constituição, erros conhecidos (LESSONS.md) e problemas de lint/tsc. Aciona lint-fixer se necessário e registra novas lições."
+
+[args]
+feature = { description = "Nome da feature (kebab-case)", required = true }
+files = { description = "Lista de arquivos gerados/modificados na sessão (caminhos completos)", required = true, variadic = true }
+
+[behavior]
+skill = ".agent/skills/analyze.md"
+subagent = "analyze-worker"
+model = "fast"
+auto_invoke = true

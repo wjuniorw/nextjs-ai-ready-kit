@@ -1,0 +1,51 @@
+{
+  "name": "nextjs-ai-ready-kit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Next.js 16 Starter Kit with Clean Architecture, DDD, FSD, MVVM, Pure Vanilla Extract and Meta-Harness AI workflow",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint .",
+    "lint:ox": "oxlint --deny-warnings",
+    "test": "ENV=test vitest --config vitest.config.ts",
+    "test:run": "ENV=test vitest run --config vitest.config.ts",
+    "test:coverage": "ENV=test vitest run --config vitest.config.ts --coverage",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\""
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.10.0",
+    "@radix-ui/react-dialog": "^1.1.14",
+    "@vanilla-extract/css": "^1.21.0",
+    "axios": "^1.16.1",
+    "clsx": "^2.1.1",
+    "cookie": "^1.0.2",
+    "lucide-react": "^0.513.0",
+    "next": "^16.2.6",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-hook-form": "^7.57.0",
+    "sonner": "^2.0.7",
+    "zod": "^3.25.56",
+    "zustand": "^5.0.5"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^20.19.0",
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.6",
+    "@vanilla-extract/next-plugin": "^2.4.9",
+    "@vanilla-extract/vite-plugin": "^5.2.6",
+    "dotenv": "^16.5.0",
+    "eslint": "^8.57.0",
+    "jsdom": "^26.0.0",
+    "oxlint": "^0.15.11",
+    "prettier": "^3.8.4",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.9"
+  }
+}

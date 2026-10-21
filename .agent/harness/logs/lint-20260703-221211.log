@@ -1,0 +1,26 @@
+
+/Users/wjunior/envolva-ti/sigapro/src/features/conception-starter/infra/factories/repo.factory.ts
+  4:1  warning  Expected "@conception-starter/infra/repositories" to come before "@factories/http-client.factory"  perfectionist/sort-imports
+
+/Users/wjunior/envolva-ti/sigapro/src/features/conception-starter/infra/factories/use-cases.factory.ts
+  9:3  warning  Expected "LoadActiveStarterUseCase" to come before "ChatInteractionStreamUseCase"  perfectionist/sort-named-imports
+
+/Users/wjunior/envolva-ti/sigapro/src/features/conception-starter/infra/repositories/conception-starters.repository.ts
+  3:1  warning  Expected "@conception-starter/domain/repositories" to come before "@shared/interfaces/http-streamable-client.interface"  perfectionist/sort-imports
+
+/Users/wjunior/envolva-ti/sigapro/src/features/conception-starter/presentation/discovery/view-models/useDiscoveryViewModel.ts
+  1:20  warning  Expected "useRef" to come before "useState"                             perfectionist/sort-named-imports
+  4:1   warning  Expected "sonner" to come before "@conception-starter/infra/factories"  perfectionist/sort-imports
+
+/Users/wjunior/envolva-ti/sigapro/src/features/conception-starter/presentation/prd/components/prd-form/prd-form.tsx
+  2:1  warning  Expected "@conception-starter/presentation/prd/components" (value-external) to come before "./prd-form.css" (value-sibling)  perfectionist/sort-imports
+
+/Users/wjunior/envolva-ti/sigapro/src/features/conception-starter/presentation/prd/view-models/usePrdViewModel.ts
+  3:1  warning  Extra spacing between "react" and "@conception-starter/presentation/actions"  perfectionist/sort-imports
+
+✖ 7 problems (0 errors, 7 warnings)
+  0 errors and 7 warnings potentially fixable with the `--fix` option.
+
+ESLint found too many warnings (maximum: 0).
+(node:55074) ESLintRCWarning: You are using an eslintrc configuration file, which is deprecated and support will be removed in v10.0.0. Please migrate to an eslint.config.js file. See https://eslint.org/docs/latest/use/configure/migration-guide for details. An eslintrc configuration file is used because you have the ESLINT_USE_FLAT_CONFIG environment variable set to false. If you want to use an eslint.config.js file, remove the environment variable. If you want to find the location of the eslintrc configuration file, use the --debug flag.
+(Use `node --trace-warnings ...` to show where the warning was created)

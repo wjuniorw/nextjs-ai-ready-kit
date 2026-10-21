@@ -1,0 +1,28 @@
+description = "Write tests for use cases and view-models using Vitest and in-memory repositories."
+
+prompt = """
+---
+description: Write tests for use cases and view-models using in-memory repositories.
+---
+
+## User Input
+
+```text
+$ARGUMENTS
+```
+
+You **MUST** consider the user input before proceeding (if not empty).
+
+## Instructions
+
+Read and follow strictly in this order:
+
+1. `.agent/system-prompt.md` — base rules and behavior
+2. `.agent/skills/write-tests/SKILL.md` — step-by-step execution
+
+Read the domain snapshot at `.agent/context/[feature].snapshot.md` before proceeding.
+
+> [!CAUTION]
+> DO NOT skip the checklist at the end of the skill before delivering.
+
+"""

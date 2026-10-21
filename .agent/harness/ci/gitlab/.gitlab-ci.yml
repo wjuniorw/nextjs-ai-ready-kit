@@ -1,0 +1,225 @@
+# GitLab CI/CD — modelo híbrido (trunk + RC) → Coolify por ambiente
+#
+#   push/merge  staging          → deploy HOMOLOG    (trunk, entregas diárias)
+#   push        feature/** fix/** → deploy PREVIEW    (inclui hotfixes)
+#   merge       main              → deploy PRODUCTION (manual)
+#   tags v*-rc.* / v*             → ver rc.yml (incluído no fim)
+#
+# Variáveis (Settings → CI/CD → Variables):
+#   COOLIFY_TOKEN             token de API do Coolify (permissão "Deploy")
+#   COOLIFY_WEBHOOK_HOMOLOG   Deploy webhook do app homolog
+#   COOLIFY_WEBHOOK_PREVIEW   Deploy webhook do app preview
+#   COOLIFY_WEBHOOK_PROD      Deploy webhook do app production
+#   HOMOLOG_URL / PRODUCTION_URL / PREVIEW_URL
+#   TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID / TELEGRAM_TOPIC_ID
+
+stages:
+  - validate
+  - test
+  - build
+  - deploy
+  - notify
+
+# ─────────────────────────────────────────
+# TEMPLATES
+# ─────────────────────────────────────────
+.node_base:
+  image: node:20-alpine
+  before_script:
+    - corepack enable
+    - pnpm install --frozen-lockfile
+  cache:
+    key:
+      files:
+        - pnpm-lock.yaml
+    paths:
+      - node_modules/
+      - .pnpm-store/
+
+.coolify_deploy: &coolify_deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - |
+      echo "→ Deploy Coolify [$DEPLOY_ENV]: ${DEPLOY_URL:-<sem URL>}"
+      curl --fail --silent --show-error --request GET "$COOLIFY_WEBHOOK" \
+        --header "Authorization: Bearer $COOLIFY_TOKEN"
+
+.notify_telegram: &notify_telegram
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - |
+      STATUS_ICON="${STATUS_ICON:-✅}"
+      MESSAGE="${STATUS_ICON} *${CI_PROJECT_NAME}*
+
+      *Pipeline:* ${PIPELINE_STATUS}
+      *Branch:* \`${CI_COMMIT_REF_NAME}\`
+      *Commit:* \`${CI_COMMIT_SHORT_SHA}\`
+      *Autor:* ${CI_COMMIT_AUTHOR}
+      *Mensagem:* ${CI_COMMIT_TITLE}
+
+      ${EXTRA_INFO:-}
+
+      [Ver pipeline](${CI_PIPELINE_URL})"
+      curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+        -d chat_id="${TELEGRAM_CHAT_ID}" \
+        -d message_thread_id="${TELEGRAM_TOPIC_ID}" \
+        -d parse_mode="Markdown" \
+        -d text="$MESSAGE"
+
+# ─────────────────────────────────────────
+# VALIDATE
+# ─────────────────────────────────────────
+lint:
+  stage: validate
+  extends: .node_base
+  script:
+    - pnpm exec tsc --noEmit
+    - ESLINT_USE_FLAT_CONFIG=false pnpm exec eslint . --max-warnings=0
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_MERGE_REQUEST_IID
+
+# ─────────────────────────────────────────
+# TEST
+# ─────────────────────────────────────────
+test:unit:
+  stage: test
+  extends: .node_base
+  variables:
+    ENV: test
+  script:
+    - pnpm exec vitest run --config vitest.config.ts
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_MERGE_REQUEST_IID
+
+# ─────────────────────────────────────────
+# BUILD (sanity — Coolify builda a imagem)
+# ─────────────────────────────────────────
+build:
+  stage: build
+  extends: .node_base
+  script:
+    - pnpm build
+  artifacts:
+    paths:
+      - .next/
+    expire_in: 1 day
+  rules:
+    - if: $CI_COMMIT_BRANCH == "staging"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH =~ /^(feature|fix)\//
+
+# ─────────────────────────────────────────
+# DEPLOY → PREVIEW (feature/** e fix/**)
+# ─────────────────────────────────────────
+deploy:preview:
+  stage: deploy
+  <<: *coolify_deploy
+  variables:
+    DEPLOY_ENV: preview
+    COOLIFY_WEBHOOK: $COOLIFY_WEBHOOK_PREVIEW
+    DEPLOY_URL: $PREVIEW_URL
+  environment:
+    name: preview/$CI_COMMIT_REF_SLUG
+    url: $PREVIEW_URL
+  needs: [build]
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^(feature|fix)\//
+
+# ─────────────────────────────────────────
+# DEPLOY → HOMOLOG (staging / trunk)
+# ─────────────────────────────────────────
+deploy:homolog:
+  stage: deploy
+  <<: *coolify_deploy
+  variables:
+    DEPLOY_ENV: homolog
+    COOLIFY_WEBHOOK: $COOLIFY_WEBHOOK_HOMOLOG
+    DEPLOY_URL: $HOMOLOG_URL
+  environment:
+    name: homolog
+    url: $HOMOLOG_URL
+  needs: [build]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "staging"
+
+# ─────────────────────────────────────────
+# DEPLOY → PRODUCTION (merge na main) — MANUAL
+# ─────────────────────────────────────────
+deploy:production:
+  stage: deploy
+  <<: *coolify_deploy
+  variables:
+    DEPLOY_ENV: production
+    COOLIFY_WEBHOOK: $COOLIFY_WEBHOOK_PROD
+    DEPLOY_URL: $PRODUCTION_URL
+  environment:
+    name: production
+    url: $PRODUCTION_URL
+  needs: [build]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual  # ← produção sempre manual (só via merge na main)
+
+# ─────────────────────────────────────────
+# NOTIFY — Telegram
+# ─────────────────────────────────────────
+notify:homolog:
+  stage: notify
+  <<: *notify_telegram
+  variables:
+    STATUS_ICON: '🚀'
+    PIPELINE_STATUS: 'Deploy em homolog'
+    EXTRA_INFO: "*Ambiente:* homolog\n*URL:* ${HOMOLOG_URL}"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "staging"
+      when: on_success
+  needs: [deploy:homolog]
+
+notify:preview:
+  stage: notify
+  <<: *notify_telegram
+  variables:
+    STATUS_ICON: '🔍'
+    PIPELINE_STATUS: 'Preview publicado'
+    EXTRA_INFO: "*Ambiente:* preview\n*Branch:* ${CI_COMMIT_REF_NAME}"
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^(feature|fix)\//
+      when: on_success
+  needs: [deploy:preview]
+
+notify:production:
+  stage: notify
+  <<: *notify_telegram
+  variables:
+    STATUS_ICON: '🎉'
+    PIPELINE_STATUS: 'Release em produção'
+    EXTRA_INFO: "*Ambiente:* production\n*URL:* ${PRODUCTION_URL}"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: on_success
+  needs: [deploy:production]
+
+notify:failure:
+  stage: notify
+  <<: *notify_telegram
+  variables:
+    STATUS_ICON: '❌'
+    PIPELINE_STATUS: 'Pipeline falhou'
+    EXTRA_INFO: 'Verifique os logs e corrija antes do próximo deploy.'
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: on_failure
+    - if: $CI_COMMIT_BRANCH == "staging"
+      when: on_failure
+
+# ─────────────────────────────────────────
+# Pipeline de Release Candidate (tags)
+# ─────────────────────────────────────────
+include:
+  - local: '.agent/harness/ci/gitlab/rc.yml'

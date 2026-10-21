@@ -1,0 +1,27 @@
+description = "Create a Cross-Feature Widget — autonomous feature with own endpoint and immediate persistence."
+
+prompt = """
+---
+description: Create a Cross-Feature Widget with own domain, endpoint and auto-save.
+---
+
+## User Input
+
+```text
+$ARGUMENTS
+```
+
+You **MUST** consider the user input before proceeding (if not empty).
+
+## Instructions
+
+Read and follow strictly in this order:
+
+1. `.agents/system-prompt.md` — base rules and behavior
+2. `.agents/skills/create-widget/SKILL.md` — step-by-step execution
+
+> [!CAUTION]
+> Confirm the widget meets the Cross-Feature Widget criteria before proceeding.
+> DO NOT skip the checklist at the end of the skill before delivering.
+
+"""

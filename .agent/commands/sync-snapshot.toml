@@ -1,0 +1,27 @@
+description = "Generate or update the compacted domain snapshot for a feature."
+
+prompt = """
+---
+description: Generate or update the compacted domain snapshot for a feature.
+---
+
+## User Input
+
+```text
+$ARGUMENTS
+```
+
+You **MUST** consider the user input before proceeding (if not empty).
+Inform the feature name and mode: `create` (new snapshot) or `update` (existing).
+
+## Instructions
+
+Read and follow strictly in this order:
+
+1. `.agent/system-prompt.md` — base rules and behavior
+2. `.agent/skills/sync-snapshot/SKILL.md` — step-by-step execution
+
+> [!CAUTION]
+> If mode is `update`, present the diff and WAIT FOR CONFIRMATION before overwriting.
+
+"""

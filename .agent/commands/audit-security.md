@@ -1,0 +1,23 @@
+---
+description: Run a security audit on a feature using the SecOps knowledge base.
+---
+
+## User Input
+
+```text
+$ARGUMENTS
+```
+
+You **MUST** consider the user input before proceeding (if not empty).
+
+## Instructions
+
+Read and follow strictly in this order:
+
+1. `.agent/system-prompt.md` — base rules and behavior
+2. `.agent/skills/audit-security/SKILL.md` — step-by-step execution
+
+Read the domain snapshot at `.agent/context/[feature].snapshot.md` before proceeding.
+
+> Read `.agent/knowledge/secops.md` before starting.
+> Save the report in `.agent/audits/` before delivering.

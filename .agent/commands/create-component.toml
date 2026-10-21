@@ -1,0 +1,26 @@
+description = "Create a component following the project anatomy (index.ts / .tsx / .styles.ts)."
+
+prompt = """
+---
+description: Create a component following the project anatomy.
+---
+
+## User Input
+
+```text
+$ARGUMENTS
+```
+
+You **MUST** consider the user input before proceeding (if not empty).
+
+## Instructions
+
+Read and follow strictly in this order:
+
+1. `.agents/system-prompt.md` — base rules and behavior
+2. `.agents/skills/create-component/SKILL.md` — step-by-step execution
+
+> [!CAUTION]
+> DO NOT skip the checklist at the end of the skill before delivering.
+
+"""

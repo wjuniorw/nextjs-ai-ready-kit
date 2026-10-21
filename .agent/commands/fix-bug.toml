@@ -1,0 +1,28 @@
+description = "Diagnose and fix a bug following the diagnosis → hypothesis → confirmation → fix → validation flow."
+
+prompt = """
+---
+description: Diagnose and fix a bug. Always diagnoses before writing any code.
+---
+
+## User Input
+
+```text
+$ARGUMENTS
+```
+
+You **MUST** consider the user input before proceeding (if not empty).
+
+## Instructions
+
+Read and follow strictly in this order:
+
+1. `.agents/system-prompt.md` — base rules and behavior
+2. `.agents/skills/fix-bug/SKILL.md` — step-by-step execution
+
+Read the domain snapshot at `.agents/context/[feature].snapshot.md` before proceeding.
+
+> [!CAUTION]
+> NEVER skip the diagnosis step. ALWAYS present the hypothesis and wait for confirmation before applying the fix.
+
+"""

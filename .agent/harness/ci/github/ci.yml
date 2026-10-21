@@ -1,0 +1,204 @@
+name: CI/CD
+
+# ─────────────────────────────────────────────────────────────
+# Modelo híbrido (trunk + Release Candidate) → Coolify por ambiente
+#
+#   push/merge  staging          → deploy HOMOLOG    (trunk, entregas diárias)
+#   push        feature/** fix/** → deploy PREVIEW    (inclui hotfixes)
+#   tag         v*-rc.*           → deploy HOMOLOG    (validar a RC)
+#   merge       main              → deploy PRODUCTION (manual, via Environment)
+#
+# Produção só entra por merge na main (sem commit direto). O gate manual é feito
+# pelo GitHub Environment "production" com Required reviewers.
+#
+# Secrets (Settings → Secrets and variables → Actions):
+#   COOLIFY_TOKEN             token de API do Coolify (permissão "Deploy")
+#   COOLIFY_WEBHOOK_HOMOLOG   Deploy webhook do app homolog
+#   COOLIFY_WEBHOOK_PREVIEW   Deploy webhook do app preview
+#   COOLIFY_WEBHOOK_PROD      Deploy webhook do app production
+#   TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID / TELEGRAM_TOPIC_ID
+#
+# Environments (Settings → Environments):
+#   production  → habilite "Required reviewers" para o gate manual de prod
+# ─────────────────────────────────────────────────────────────
+
+on:
+  push:
+    branches: [main, staging, 'feature/**', 'fix/**']
+    tags: ['v*']
+  pull_request:
+    branches: [main, staging]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─────────────────────────────────────────
+  # VALIDATE
+  # ─────────────────────────────────────────
+  lint:
+    name: Lint + TypeCheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec tsc --noEmit
+      - run: ESLINT_USE_FLAT_CONFIG=false pnpm exec eslint . --max-warnings=0
+
+  # ─────────────────────────────────────────
+  # TEST
+  # ─────────────────────────────────────────
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: ENV=test pnpm exec vitest run --config vitest.config.ts
+
+  # ─────────────────────────────────────────
+  # BUILD (sanity — Coolify faz o build da imagem)
+  # ─────────────────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+  # ─────────────────────────────────────────
+  # DEPLOY → PREVIEW  (feature/** e fix/**)
+  # ─────────────────────────────────────────
+  deploy-preview:
+    name: Deploy Preview
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.ref, 'refs/heads/fix/')
+    environment:
+      name: preview
+    steps:
+      - name: Trigger Coolify (preview)
+        run: |
+          curl --fail --silent --show-error --request GET \
+            "${{ secrets.COOLIFY_WEBHOOK_PREVIEW }}" \
+            --header "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}"
+
+  # ─────────────────────────────────────────
+  # DEPLOY → HOMOLOG  (staging + tags de RC)
+  # ─────────────────────────────────────────
+  deploy-homolog:
+    name: Deploy Homolog
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: >-
+      github.ref == 'refs/heads/staging' ||
+      (startsWith(github.ref, 'refs/tags/v') && contains(github.ref, '-rc.'))
+    environment:
+      name: homolog
+    steps:
+      - name: Trigger Coolify (homolog)
+        run: |
+          curl --fail --silent --show-error --request GET \
+            "${{ secrets.COOLIFY_WEBHOOK_HOMOLOG }}" \
+            --header "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}"
+
+  # ─────────────────────────────────────────
+  # DEPLOY → PRODUCTION  (merge na main / release tag) — MANUAL
+  # O gate manual vem do Environment "production" (Required reviewers).
+  # ─────────────────────────────────────────
+  deploy-production:
+    name: Deploy Production
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: >-
+      github.ref == 'refs/heads/main' ||
+      (startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-rc.'))
+    environment:
+      name: production
+    steps:
+      - name: Trigger Coolify (production)
+        run: |
+          curl --fail --silent --show-error --request GET \
+            "${{ secrets.COOLIFY_WEBHOOK_PROD }}" \
+            --header "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}"
+
+  # ─────────────────────────────────────────
+  # NOTIFY TELEGRAM
+  # ─────────────────────────────────────────
+  notify:
+    name: Notify Telegram
+    runs-on: ubuntu-latest
+    needs: [deploy-preview, deploy-homolog, deploy-production]
+    if: always() && github.event_name == 'push'
+    steps:
+      - name: Resolve environment
+        id: env
+        run: |
+          case "${GITHUB_REF}" in
+            refs/heads/main) echo "env=production" >> "$GITHUB_OUTPUT" ;;
+            refs/heads/staging) echo "env=homolog" >> "$GITHUB_OUTPUT" ;;
+            refs/heads/feature/*|refs/heads/fix/*) echo "env=preview" >> "$GITHUB_OUTPUT" ;;
+            refs/tags/*-rc.*) echo "env=homolog (RC)" >> "$GITHUB_OUTPUT" ;;
+            refs/tags/*) echo "env=production (release)" >> "$GITHUB_OUTPUT" ;;
+            *) echo "env=—" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Notify success
+        if: ${{ !contains(needs.*.result, 'failure') }}
+        run: |
+          MESSAGE="🚀 *${GITHUB_REPOSITORY}*
+
+          *Status:* Deploy realizado com sucesso
+          *Ambiente:* ${{ steps.env.outputs.env }}
+          *Ref:* \`${GITHUB_REF_NAME}\`
+          *Commit:* \`${GITHUB_SHA:0:7}\`
+          *Autor:* ${GITHUB_ACTOR}
+
+          [Ver Actions](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})"
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d message_thread_id="${{ secrets.TELEGRAM_TOPIC_ID }}" \
+            -d parse_mode="Markdown" \
+            -d text="$MESSAGE"
+
+      - name: Notify failure
+        if: ${{ contains(needs.*.result, 'failure') }}
+        run: |
+          MESSAGE="❌ *${GITHUB_REPOSITORY}*
+
+          *Status:* Pipeline falhou
+          *Ambiente:* ${{ steps.env.outputs.env }}
+          *Ref:* \`${GITHUB_REF_NAME}\`
+          *Commit:* \`${GITHUB_SHA:0:7}\`
+          *Autor:* ${GITHUB_ACTOR}
+
+          [Ver erro](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})"
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d message_thread_id="${{ secrets.TELEGRAM_TOPIC_ID }}" \
+            -d parse_mode="Markdown" \
+            -d text="$MESSAGE"

@@ -1,0 +1,28 @@
+description = "Create a new vertical feature following the project architecture."
+
+prompt = """
+---
+description: Create a new vertical feature following the project architecture.
+---
+
+## User Input
+
+```text
+$ARGUMENTS
+```
+
+You **MUST** consider the user input before proceeding (if not empty).
+
+## Instructions
+
+Read and follow strictly in this order:
+
+1. `.agents/system-prompt.md` — base rules and behavior
+2. `.agents/skills/create-feature/SKILL.md` — step-by-step execution
+
+If a domain snapshot exists at `.agents/context/[feature].snapshot.md`, read it before generating any code.
+
+> [!CAUTION]
+> DO NOT skip the checklist at the end of the skill before delivering.
+
+"""

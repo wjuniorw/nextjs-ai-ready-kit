@@ -1,0 +1,166 @@
+# GitLab CI — Release Candidate → Coolify
+# Incluído pelo .gitlab-ci.yml principal:
+#   include:
+#     - local: '.agent/harness/ci/gitlab/rc.yml'
+#
+# Triggers:
+#   tag v*-rc.*   → valida + testa + deploy HOMOLOG + Telegram "RC disponível"
+#   tag v* (sem -rc) → deploy PRODUCTION (manual) + Telegram "Release"
+#
+# Variáveis (Settings → CI/CD → Variables):
+#   COOLIFY_TOKEN, COOLIFY_WEBHOOK_HOMOLOG, COOLIFY_WEBHOOK_PROD
+#   HOMOLOG_URL, PRODUCTION_URL
+#   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TELEGRAM_TOPIC_ID
+
+.rc_node_base: &rc_node_base
+  image: node:20-alpine
+  before_script:
+    - corepack enable
+    - pnpm install --frozen-lockfile
+  cache:
+    key:
+      files:
+        - pnpm-lock.yaml
+    paths:
+      - node_modules/
+
+# ─────────────────────────────────────────
+# VALIDATE — em toda tag de RC
+# ─────────────────────────────────────────
+rc:lint:
+  <<: *rc_node_base
+  stage: validate
+  script:
+    - pnpm exec tsc --noEmit
+    - ESLINT_USE_FLAT_CONFIG=false pnpm exec eslint . --max-warnings=0
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-rc\.\d+$/
+
+rc:test:
+  <<: *rc_node_base
+  stage: test
+  variables:
+    ENV: test
+  script:
+    - pnpm exec vitest run --config vitest.config.ts
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-rc\.\d+$/
+
+# ─────────────────────────────────────────
+# DEPLOY RC → HOMOLOG (automático)
+# ─────────────────────────────────────────
+rc:deploy:homolog:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl
+  environment:
+    name: homolog
+    url: $HOMOLOG_URL
+  script:
+    - |
+      echo "→ Deploy RC em homolog: $CI_COMMIT_TAG"
+      curl --fail --silent --show-error --request GET "$COOLIFY_WEBHOOK_HOMOLOG" \
+        --header "Authorization: Bearer $COOLIFY_TOKEN"
+  needs:
+    - rc:lint
+    - rc:test
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-rc\.\d+$/
+
+# ─────────────────────────────────────────
+# NOTIFY — RC disponível em homolog
+# ─────────────────────────────────────────
+rc:notify:
+  stage: notify
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl git
+  script:
+    - |
+      BASE_VERSION=$(echo "$CI_COMMIT_TAG" | sed 's/-rc\.[0-9]*//')
+      PREV_TAG=$(git tag --list "v*" --sort=-version:refname | grep -v '\-rc\.' | head -1 || echo "")
+      if [ -n "$PREV_TAG" ]; then
+        COMMITS=$(git log "${PREV_TAG}..${CI_COMMIT_TAG}" --pretty="• %s" | head -10)
+      else
+        COMMITS=$(git log "$CI_COMMIT_TAG" --pretty="• %s" | head -10)
+      fi
+      MESSAGE="🔖 *Release Candidate em homolog*
+
+      *RC:* \`$CI_COMMIT_TAG\`
+      *Versão alvo:* \`$BASE_VERSION\`
+      *Commit:* \`$CI_COMMIT_SHORT_SHA\`
+      *Autor:* $CI_COMMIT_AUTHOR
+
+      *O que há de novo:*
+      $COMMITS
+
+      _Valide em homolog. Para promover:_
+      _bash .agent/harness/pipeline/promote-rc.sh $CI_COMMIT_TAG_
+
+      [Ver pipeline]($CI_PIPELINE_URL)"
+      curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+        -d chat_id="${TELEGRAM_CHAT_ID}" \
+        -d message_thread_id="${TELEGRAM_TOPIC_ID}" \
+        -d parse_mode="Markdown" \
+        -d text="$MESSAGE"
+  needs:
+    - rc:deploy:homolog
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-rc\.\d+$/
+
+# ─────────────────────────────────────────
+# DEPLOY RELEASE → PRODUCTION (manual, tag v* sem -rc)
+# ─────────────────────────────────────────
+release:deploy:production:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl
+  environment:
+    name: production
+    url: $PRODUCTION_URL
+  script:
+    - |
+      echo "→ Deploy release em produção: $CI_COMMIT_TAG"
+      curl --fail --silent --show-error --request GET "$COOLIFY_WEBHOOK_PROD" \
+        --header "Authorization: Bearer $COOLIFY_TOKEN"
+  when: manual  # ← produção sempre manual
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $CI_COMMIT_TAG !~ /rc/
+
+# ─────────────────────────────────────────
+# NOTIFY — Release em produção
+# ─────────────────────────────────────────
+release:notify:
+  stage: notify
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl git
+  script:
+    - |
+      PREV_TAG=$(git tag --list "v*" --sort=-version:refname | grep -v '\-rc\.' | head -2 | tail -1 || echo "")
+      if [ -n "$PREV_TAG" ]; then
+        COMMITS=$(git log "${PREV_TAG}..${CI_COMMIT_TAG}" --pretty="• %s" | head -10)
+      else
+        COMMITS=$(git log "$CI_COMMIT_TAG" --pretty="• %s" | head -10)
+      fi
+      MESSAGE="🎉 *Release em produção*
+
+      *Versão:* \`$CI_COMMIT_TAG\`
+      *Commit:* \`$CI_COMMIT_SHORT_SHA\`
+      *Autor:* $CI_COMMIT_AUTHOR
+
+      *O que há de novo:*
+      $COMMITS
+
+      [Ver pipeline]($CI_PIPELINE_URL)"
+      curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+        -d chat_id="${TELEGRAM_CHAT_ID}" \
+        -d message_thread_id="${TELEGRAM_TOPIC_ID}" \
+        -d parse_mode="Markdown" \
+        -d text="$MESSAGE"
+  needs:
+    - release:deploy:production
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $CI_COMMIT_TAG !~ /rc/

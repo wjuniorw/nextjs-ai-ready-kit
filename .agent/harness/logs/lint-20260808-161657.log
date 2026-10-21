@@ -1,0 +1,37 @@
+✓ Lockfile passes supply-chain policies (verified 8d ago)
+Lockfile is up to date, resolution step is skipped
+Already up to date
+
+Done in 9.1s using pnpm v11.17.0
+
+/Users/wjunior/envolva-ti/sigapro/src/features/activation/application/use-cases/create-activation.use-case.ts
+  2:1  warning  Expected "@activation/domain/repositories/activation-repository.interface" to come before "@activation/application/dtos/activation.dto"  perfectionist/sort-imports
+
+/Users/wjunior/envolva-ti/sigapro/src/features/activation/application/use-cases/delete-activation.use-case.ts
+  2:1  warning  Expected "@activation/domain/repositories/activation-repository.interface" to come before "@activation/application/dtos/activation.dto"  perfectionist/sort-imports
+
+/Users/wjunior/envolva-ti/sigapro/src/features/activation/application/use-cases/get-activation-by-board.use-case.ts
+  2:1  warning  Expected "@activation/domain/repositories/activation-repository.interface" to come before "@activation/application/dtos/activation.dto"  perfectionist/sort-imports
+
+/Users/wjunior/envolva-ti/sigapro/src/features/activation/application/use-cases/update-activation-axis-y.use-case.ts
+  2:1  warning  Expected "@activation/domain/repositories/activation-repository.interface" to come before "@activation/application/dtos/activation.dto"  perfectionist/sort-imports
+
+/Users/wjunior/envolva-ti/sigapro/src/features/activation/application/use-cases/update-activation.use-case.ts
+  2:1  warning  Expected "@activation/domain/repositories/activation-repository.interface" to come before "@activation/application/dtos/activation.dto"  perfectionist/sort-imports
+
+/Users/wjunior/envolva-ti/sigapro/src/features/activation/infra/factories/repo.factory.ts
+  4:1  warning  Expected "@factories/http-client.factory" to come before "@activation/domain/repositories/activation-repository.interface"    perfectionist/sort-imports
+  4:1  warning  Extra spacing between "@activation/domain/repositories/activation-repository.interface" and "@factories/http-client.factory"  perfectionist/sort-imports
+
+/Users/wjunior/envolva-ti/sigapro/src/features/activation/infra/repositories/activation.repository.ts
+  2:1  warning  Expected "@domain/repositories/http-client.interface" to come before "@activation/domain/entities/activation.entity"  perfectionist/sort-imports
+
+/Users/wjunior/envolva-ti/sigapro/src/features/activation/presentation/actions/activation.action.ts
+  6:1  warning  Expected "@activation/infra/factories" (value-external) to come before "@/lib/auth/server-auth" (value-internal)  perfectionist/sort-imports
+
+✖ 9 problems (0 errors, 9 warnings)
+  0 errors and 9 warnings potentially fixable with the `--fix` option.
+
+ESLint found too many warnings (maximum: 0).
+(node:14245) ESLintRCWarning: You are using an eslintrc configuration file, which is deprecated and support will be removed in v10.0.0. Please migrate to an eslint.config.js file. See https://eslint.org/docs/latest/use/configure/migration-guide for details. An eslintrc configuration file is used because you have the ESLINT_USE_FLAT_CONFIG environment variable set to false. If you want to use an eslint.config.js file, remove the environment variable. If you want to find the location of the eslintrc configuration file, use the --debug flag.
+(Use `node --trace-warnings ...` to show where the warning was created)

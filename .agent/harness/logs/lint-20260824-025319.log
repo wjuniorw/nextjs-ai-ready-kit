@@ -1,0 +1,9 @@
+src/features/auth/presentation/containers/login-container.tsx:1:1: warning unicorn(no-empty-file): Empty files are not allowed. help: Delete this file or add some code to it.
+src/features/auth/presentation/signin/view-models/useSigninViewModel.ts:17:5: warning eslint(no-unused-vars): Variable 'handleSubmit' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/features/auth/domain/value-objects/password.value-object.ts:18:60: warning eslint(no-useless-escape): Unnecessary escape character '[' help: Replace `\[` with `[`.
+src/features/auth/domain/value-objects/password.value-object.ts:18:77: warning eslint(no-useless-escape): Unnecessary escape character '/' help: Replace `\/` with `/`.
+src/features/auth/domain/value-objects/password.value-object.ts:18:106: warning eslint(no-useless-escape): Unnecessary escape character '[' help: Replace `\[` with `[`.
+src/features/auth/domain/value-objects/password.value-object.ts:18:123: warning eslint(no-useless-escape): Unnecessary escape character '/' help: Replace `\/` with `/`.
+src/features/auth/infra/factories/repo.factory.ts(1,10): error TS2305: Module '"@auth/infra/repositories"' has no exported member 'AuthRepository'.
+src/features/auth/presentation/actions/session.action.ts(4,10): error TS2305: Module '"@auth/infra/factories"' has no exported member 'makeListSessionsUseCase'.
+src/features/auth/presentation/actions/session.action.ts(4,35): error TS2305: Module '"@auth/infra/factories"' has no exported member 'makeRevokeSessionUseCase'.
