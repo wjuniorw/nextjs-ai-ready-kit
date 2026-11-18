@@ -184,3 +184,11 @@ Step 5: Flag as uncertain → "I'm not certain about X - here's my reasoning, bu
 Use available tools with graceful degradation. See [code-analysis.md](references/code-analysis.md).
 
 <!--tracking this skill-->
+
+<!-- META-HARNESS-SKILL-ASSERT:START -->
+## Meta-Harness Skill Binding (Overlay Preservado)
+Antes de aprovar `tasks.md` e antes de executar qualquer task:
+1. Consulte `.agent/harness/skill-map.json` (se existir) para mapear automaticamente a camada/arquivo da task para a skill nativa correta do projeto.
+2. Nunca deixe `Skill: NONE` em tasks de codigo quando houver skill correspondente no mapa ou em `.agent/skills/`.
+3. Execute `python3 .agent/harness/assert-task-skills.py --root .` junto com `validate_tasks.py`.
+<!-- META-HARNESS-SKILL-ASSERT:END -->

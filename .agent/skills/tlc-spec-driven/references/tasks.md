@@ -449,3 +449,10 @@ Pick whichever option keeps tasks atomic and cohesive. The goal: no task produce
 ## Task Verification Standards
 
 Every task MUST follow the `Done when` + `Tests` + `Gate` fields defined in the **Task Breakdown** template above. Each `Done when` entry must be specific, testable (binary pass/fail), and reference the gate check command from the `Gate Check Commands` section. Include the expected test count to prevent silent deletions.
+
+<!-- META-HARNESS-SKILL-ASSERT:START -->
+### Meta-Harness Skill Assertion (Obrigatorio)
+Toda task que cria/altera codigo ou testes deve preencher `- Skill: <nome-da-skill>` consultando `.agent/harness/skill-map.json` (fallback: `.agent/skills/*/SKILL.md`).
+Antes de apresentar `tasks.md` ao humano, execute:
+`python3 .agent/harness/assert-task-skills.py <tasks-path> --root .`
+<!-- META-HARNESS-SKILL-ASSERT:END -->

@@ -1,0 +1,10 @@
+{
+  "require_for_code_tasks": true,
+  "rules": [
+    { "match_path": "(^|/)use-?cases?/", "skills": ["create-use-case"] },
+    { "match_path": "(^|/)components?/", "skills": ["create-component"] },
+    { "match_path": "(^|/)widgets?/", "skills": ["create-widget"] },
+    { "match_path": "(^|/)features?/", "skills": ["create-feature"] },
+    { "match_path": "\\.(test|spec)\\.(ts|tsx)$", "skills": ["write-tests"] }
+  ]
+}

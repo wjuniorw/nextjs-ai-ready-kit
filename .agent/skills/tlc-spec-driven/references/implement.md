@@ -441,3 +441,8 @@ When work is interrupted, paused, or a session ends before the feature is comple
 4. Do NOT touch the `## Decisions` section above it - decisions are written only during Design.
 
 **Section-scoped write (critical):** Replace the content between the `## Handoff` header and the next `##` header (or end of file). Never overwrite the full file - doing so silently destroys the Decisions log.
+
+<!-- META-HARNESS-SKILL-ASSERT:START -->
+### Meta-Harness Skill Activation (Antes de Codar)
+Antes de editar arquivos de uma task, leia obrigatoriamente `skill://<skill>` (ou `.agent/skills/<skill>/SKILL.md` / `.agents/skills/<skill>/SKILL.md`) declarada no campo `Skill:` da task.
+<!-- META-HARNESS-SKILL-ASSERT:END -->

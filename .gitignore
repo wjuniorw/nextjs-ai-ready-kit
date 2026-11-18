@@ -7,3 +7,6 @@ dist
 .DS_Store
 *.tsbuildinfo
 next-env.d.ts
+
+# External CLI skills (restored via skills-lock.json)
+.agents/
